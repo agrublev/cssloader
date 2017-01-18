@@ -4,28 +4,91 @@
  * settings are options like force no cache which uses random number in name
  */
 var cssloader = {}; // TODO check if variable was already instantiated
-cssloader.settings = {
-	defaultMedia: "screen",
-		devMode: false
-};
-cssloader.require = function(stylesheets,settings){
-    var self = this;
-    // extend settings
-    self.settings = self.extend(self.settings,settings);
 
-    // Type of format passed simple which is
-    // simple: ("url_to_stylesheet/sheet.css", "another.css")
-    // advanced: [{href: "url_to_stylesheet/sheet.css", media: "screen"}, {href: "another.css", media: "print"}]
+/**
+ * Globals
+ */
+cssloader._g = {};
+cssloader._g.settings = {
+	defaultMedia: "screen",
+	devMode: false
+};
+// Variable to hold all loaded stylesheets
+cssloader._g.loadedSheets = [];
+/**
+ * Require one or many stylesheets
+ * @param stylesheets two types available:
+ * 1. Advanced: array of objects like [{href: "url_to_stylesheet/sheet.css", media: "screen"}, {href: "another.css", media: "print"}]
+ * 2. Simple: a comma separated string like "url_to_stylesheet/sheet.css,another.css"
+ * @param settings are passed to handle things like a different media type defaults or using dev mode to console on load
+ * {
+ *		defaultMedia: "screen",
+ *		devMode: false
+ * }
+ */
+cssloader.require = function(stylesheets,settings){
+    var cssloader = this;
+    // Extend settings
+    cssloader._g.settings = cssloader._h.extend(cssloader._g.settings,settings);
+
+    // Type of passed stylesheets
     var stylesheetsFormat = ( typeof stylesheets === "string" ? "simple" : "advanced" );
 
     // Get the array depending on format
     var stylesheetsArr = ( stylesheetsFormat === "simple" ? stylesheets.split(",") : stylesheets );
 
     // If there are no loaded sheets yet scan page for existing stylesheets included manually
-    if (!self.loadedSheets.length) {
-        self.loadedSheets = self.getExistingPageSheets();
+    if (!cssloader._g.loadedSheets.length) {
+        cssloader._g.loadedSheets = cssloader._h.getExistingPageSheets();
     }
 
+	cssloader._h.loadSheets(stylesheetsArr,stylesheetsFormat);
+};
+cssloader.load = function(params) {
+	// Type of passed stylesheets
+	var stylesheetsFormat = ( typeof params.stylesheets === "string" ? "simple" : "advanced" );
+
+	// Get the array depending on format
+	var stylesheetsArr = ( stylesheetsFormat === "simple" ? params.stylesheets.split(",") : params.stylesheets );
+
+	var appendedSheets = cssloader._h.appendSheets(stylesheetsArr,stylesheetsFormat);
+	console.log('zz:',appendedSheets);
+};
+/**
+ * PRIVATE HELPERS THAT DO NOT NEED TO BE EXPOSED TO PUBLIC
+ */
+cssloader._h = {};
+cssloader._h.ajax = function(url, method, callback, params = null) {
+	var obj;
+	try {
+		obj = new XMLHttpRequest();
+	} catch(e){
+		try {
+			obj = new ActiveXObject("Msxml2.XMLHTTP");
+		} catch(e) {
+			try {
+				obj = new ActiveXObject("Microsoft.XMLHTTP");
+			} catch(e) {
+				alert("Your browser does not support Ajax.");
+				return false;
+			}
+		}
+	}
+	obj.onreadystatechange = function() {
+		if(obj.readyState == 4) {
+			callback(obj.responseText);
+		}
+	}
+	obj.open(method, url, true);
+	obj.send(params);
+	return obj.responseText;
+}
+/**
+ * Use special callback loop to make sure a stylesheet has been loaded before we continue to next
+ * @param stylesheetsArr array of stylesheets
+ * @param stylesheetsFormat the format of stylesheets array
+ */
+cssloader._h.loadSheets = function(stylesheetsArr,stylesheetsFormat) {
 	var x = 0;
 	var loopArray = function(arr) {
 		customAlert(arr[x],function(){
@@ -40,26 +103,25 @@ cssloader.require = function(stylesheets,settings){
 	}
 
 	function customAlert(item,callback) {
-	    console.log(item);
 		// Set href depending on format
 		var href = (stylesheetsFormat === "simple" ? item : item["href"]);
-		href = cssloader.getHref(href);
+		href = cssloader._h.getHref(href);
 		// Set media depending on format
-		var media = (stylesheetsFormat === "simple" ? self.settings.defaultMedia : item["media"]);
+		var media = (stylesheetsFormat === "simple" ? cssloader._g.settings.defaultMedia : item["media"]);
 
 		// Make sure it has not already been loaded in page
-		if(self.hasNotBeenLoaded(href,self.loadedSheets)) {
-			var loadStylesheet = self.loadCSS( href, null, media );
-			self.onloadCSS( loadStylesheet, function(theSheet) {
-				if (self.settings.devMode) console.log( "Stylesheet "+ theSheet.href +" has been loaded." );
-				self.loadedSheets.push(theSheet.href);
+		if(cssloader._h.hasNotBeenLoaded(href,cssloader._g.loadedSheets)) {
+			var loadStylesheet = cssloader._h.loadCSS( href, null, media );
+			cssloader._h.onloadCSS( loadStylesheet, function(theSheet) {
+				if (cssloader._g.settings.devMode) console.log( "Stylesheet "+ theSheet.href +" has been loaded." );
+				cssloader._g.loadedSheets.push(theSheet.href);
 				// do callback when ready
 				callback();
 			});
 		}
 		// Handle if it's already loaded
 		else {
-			if (self.settings.devMode) console.log("Stylesheet " + href + " could not be loaded as it's already loaded");
+			if (cssloader._g.settings.devMode) console.log("Stylesheet " + href + " could not be loaded as it's already loaded");
 			// do callback when ready
 			callback();
 		}
@@ -67,7 +129,49 @@ cssloader.require = function(stylesheets,settings){
 	loopArray(stylesheetsArr);
 };
 
-cssloader.extend = function(){
+cssloader._h.appendSheets = function(stylesheetsArr,stylesheetsFormat) {
+	var x = 0;
+	var appendedSheets = "";
+	var loopArray = function(arr,appendedSheets) {
+		customAlert(arr[x],function(obj){
+			// set x to next item
+			appendedSheets += obj;
+			x++;
+
+			// any more items in array? continue loop
+			if(x < arr.length) {
+				loopArray(arr);
+			}
+			if (x == arr.length) {
+				console.log("SHAZAM",appendedSheets);
+			}
+		});
+	}
+
+	function customAlert(item,callback) {
+		var href = (stylesheetsFormat === "simple" ? item : item["href"]);
+		href = cssloader._h.getHref(href);
+
+		// Make sure it has not already been loaded in page
+		if(cssloader._h.hasNotBeenLoaded(href,cssloader._g.loadedSheets)) {
+			cssloader._h.ajax(href,"get",function(obj){
+				//console.log(obj);
+				callback(obj);
+			});
+			//
+		}
+		// Handle if it's already loaded
+		else {
+			if (cssloader._g.settings.devMode) console.log("Stylesheet " + href + " could not be loaded as it's already loaded");
+			// do callback when ready
+			callback();
+		}
+	}
+	loopArray(stylesheetsArr,appendedSheets);
+	return appendedSheets;
+};
+
+cssloader._h.extend = function(){
     for(var i=1; i<arguments.length; i++)
         for(var key in arguments[i])
             if(arguments[i].hasOwnProperty(key))
@@ -80,7 +184,7 @@ cssloader.extend = function(){
  * @param href examples "/css/style.css" or "style.css" or "../../css/style.css" etc
  * @returns {*}
  */
-cssloader.getHref = function(href) {
+cssloader._h.getHref = function(href) {
 	// get the base url
 	var pathname = window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1);
 	var baseurl = window.location.href.substring(0,location.href.lastIndexOf('/')+1).replace(pathname,"");
@@ -112,22 +216,13 @@ cssloader.getHref = function(href) {
 /**
  * Check if sheet is in sheets
  */
-cssloader.hasNotBeenLoaded = function(sheet, sheets) {
-    // console.log(sheet,sheets);
+cssloader._h.hasNotBeenLoaded = function(sheet, sheets) {
     return (sheets.indexOf(sheet) === -1);
 };
 /**
- * Variable to hold all loaded stylesheets
- */
-cssloader.loadedSheets = [];
-/**
- * Any stylesheets that were added manually
- */
-cssloader.preExistingSheets = [];
-/**
  * Get all stylesheets on page as array of hrefs
  */
-cssloader.getExistingPageSheets = function() {
+cssloader._h.getExistingPageSheets = function() {
     // Get current page stylesheets that already exist, non dynamically loaded
     var allSheetsArr = document.head.getElementsByTagName("link");
     var arrayOfHrefs = [];
@@ -139,7 +234,7 @@ cssloader.getExistingPageSheets = function() {
 /*! loadCSS: load a CSS file asynchronously. [c]2016 @scottjehl, Filament Group, Inc. Licensed MIT
  https://github.com/filamentgroup/loadCSS
  */
-cssloader.loadCSS = function( href, before, media ){
+cssloader._h.loadCSS = function( href, before, media ){
     var w = window;
     // Arguments explained:
     // `href` [REQUIRED] is the URL for your CSS file.
@@ -210,7 +305,7 @@ cssloader.loadCSS = function( href, before, media ){
 /*! onloadCSS: adds onload support for asynchronous stylesheets loaded with loadCSS. [c]2016 @zachleat, Filament Group, Inc. Licensed MIT */
 /* global navigator */
 /* exported onloadCSS */
-cssloader.onloadCSS = function( ss, callback ) {
+cssloader._h.onloadCSS = function( ss, callback ) {
     var called;
     function newcb(){
         if( !called && callback ){

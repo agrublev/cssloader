@@ -2,7 +2,7 @@
 <html>
 
 <head>
-	<link rel="stylesheet" href="/fcloader/style.css">
+	<link rel="stylesheet" href="/cssloader/style.css">
 	<link rel="stylesheet" href="stylesheets/style3.css">
 	<!--<link rel="stylesheet" href="stylesheets/style5.css">-->
 	<script src="jquery.js"></script>
@@ -14,17 +14,20 @@
 	<script>
 		docReady(function() {
 			// require some stylesheets
-			cssloader.require([
-				{href: "/fcloader/stylesheets/style1.css", media: "screen"},
-				// Use for testing of loading a HUGE css file to make sure we load in order
-				{href: "stylesheets/style2.css", media: "screen"},
-				{href: "stylesheets/style5.css", media: "screen"}
-			], {devMode: true});
+//			cssloader.require([
+//				{href: "/fcloader/stylesheets/style1.css", media: "screen"},
+//				// Use for testing of loading a HUGE css file to make sure we load in order
+//				// {href: "stylesheets/style2.css", media: "screen"},
+//				{href: "stylesheets/style5.css", media: "screen"}
+//			], {devMode: true});
+			cssloader.load({
+				stylesheets: "stylesheets/style5.css,stylesheets/style1.css"
+			});
 		});
 		// For testing purposes jquery NOT needed
 		$(function () {
 			$(".whatSheets").on("click", function () {
-				cssloader.require('style4.css,style2.css');
+				cssloader.require('stylesheets/style4.css,stylesheets/style1.css');
 			});
 		});
 	</script>
@@ -34,7 +37,7 @@
 <body>
 	<h1>Hello Plunker!</h1>
 	Load Sheets as we want them
-	<div class="whatSheets">What sheets</div>
+	<div class="whatSheets" style="padding:15px; background-color:#fff; cursor: pointer;">What sheets</div>
 	<script>document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')</script>
 </body>
 
