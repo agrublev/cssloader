@@ -11,10 +11,11 @@ var cssloader = {}; // TODO check if variable was already instantiated
 cssloader._g = {};
 cssloader._g.settings = {
 	defaultMedia: "screen",
-	devMode: false
+	devMode: true
 };
 // Variable to hold all loaded stylesheets
 cssloader._g.loadedSheets = [];
+cssloader._g.appendedStyles = "";
 /**
  * Require one or many stylesheets
  * @param stylesheets two types available:
@@ -51,8 +52,19 @@ cssloader.load = function(params) {
 	// Get the array depending on format
 	var stylesheetsArr = ( stylesheetsFormat === "simple" ? params.stylesheets.split(",") : params.stylesheets );
 
-	var appendedSheets = cssloader._h.appendSheets(stylesheetsArr,stylesheetsFormat);
-	console.log('zz:',appendedSheets);
+	cssloader._h.appendSheets(stylesheetsArr,stylesheetsFormat);
+};
+cssloader.routes = function(routes) {
+	for ( var i = 0; i < routes.length; i++ ) {
+		var whenArr = routes[i]["when"].split(",");
+		var path = window.location.pathname + window.location.hash;
+		for ( var x = 0; x < whenArr.length; x++ ) {
+			if ( path.indexOf(whenArr[x]) !== -1 ) {
+                console.log("LOAD",routes[i]["load"]);
+				cssloader.require(routes[i]["load"]);
+			}
+		}
+	}
 };
 /**
  * PRIVATE HELPERS THAT DO NOT NEED TO BE EXPOSED TO PUBLIC
@@ -104,8 +116,9 @@ cssloader._h.loadSheets = function(stylesheetsArr,stylesheetsFormat) {
 
 	function customAlert(item,callback) {
 		// Set href depending on format
-		var href = (stylesheetsFormat === "simple" ? item : item["href"]);
-		href = cssloader._h.getHref(href);
+		var url = (stylesheetsFormat === "simple" ? item : item["href"]);
+		var href = cssloader._h.getHref(url);
+		href = ( href ? href : url );
 		// Set media depending on format
 		var media = (stylesheetsFormat === "simple" ? cssloader._g.settings.defaultMedia : item["media"]);
 
@@ -129,46 +142,62 @@ cssloader._h.loadSheets = function(stylesheetsArr,stylesheetsFormat) {
 	loopArray(stylesheetsArr);
 };
 
+cssloader._h.appendToStyle = function(css) {
+    var head = document.head || document.getElementsByTagName('head')[0];
+	var cssloaderStyle = document.getElementById('cssloader');
+    if (cssloaderStyle === null) {
+        var style = document.createElement('style');
+        style.type = 'text/css';
+        style.setAttribute("id", "cssloader");
+        style.innerHTML= css;
+        head.appendChild(style);
+	} else {
+        cssloaderStyle.innerHTML= cssloaderStyle.innerHTML + css;
+	}
+    if (cssloader._g.settings.devMode) console.log("CSS Loaded: " + css);
+}
+
 cssloader._h.appendSheets = function(stylesheetsArr,stylesheetsFormat) {
 	var x = 0;
-	var appendedSheets = "";
-	var loopArray = function(arr,appendedSheets) {
-		customAlert(arr[x],function(obj){
+	var loopArray = function(arr) {
+		customAlert(arr[x],function(obj,href){
 			// set x to next item
-			appendedSheets += obj;
 			x++;
 
 			// any more items in array? continue loop
 			if(x < arr.length) {
 				loopArray(arr);
 			}
-			if (x == arr.length) {
-				console.log("SHAZAM",appendedSheets);
-			}
 		});
-	}
+	};
 
 	function customAlert(item,callback) {
 		var href = (stylesheetsFormat === "simple" ? item : item["href"]);
 		href = cssloader._h.getHref(href);
 
-		// Make sure it has not already been loaded in page
-		if(cssloader._h.hasNotBeenLoaded(href,cssloader._g.loadedSheets)) {
-			cssloader._h.ajax(href,"get",function(obj){
-				//console.log(obj);
-				callback(obj);
-			});
-			//
-		}
-		// Handle if it's already loaded
-		else {
-			if (cssloader._g.settings.devMode) console.log("Stylesheet " + href + " could not be loaded as it's already loaded");
-			// do callback when ready
-			callback();
+
+		if ( href ) {
+			// Make sure it has not already been loaded in page
+			if(cssloader._h.hasNotBeenLoaded(href,cssloader._g.loadedSheets)) {
+				cssloader._h.ajax(href,"get",function(obj){
+					//console.log("IN THE MIDDLE");
+					cssloader._h.appendToStyle("/** "+ href + " */ \n" + obj + "\n" + "/** END "+ href + " */ \n");
+					cssloader._g.loadedSheets.push(href);
+					callback(obj,href);
+				});
+				//
+			}
+			// Handle if it's already loaded
+			else {
+				if (cssloader._g.settings.devMode) console.log("Stylesheet " + href + " could not be loaded as it's already loaded");
+				// do callback when ready
+				callback();
+			}
+        } else {
+            if (cssloader._g.settings.devMode) console.log("Stylesheet " + href + " can't be loaded as it's from another domain");
 		}
 	}
-	loopArray(stylesheetsArr,appendedSheets);
-	return appendedSheets;
+	loopArray(stylesheetsArr);
 };
 
 cssloader._h.extend = function(){
@@ -185,6 +214,10 @@ cssloader._h.extend = function(){
  * @returns {*}
  */
 cssloader._h.getHref = function(href) {
+	// TODO find way to do this so if someone names stylesheet http.css it works
+	if (href.substr(0,4) === "http") {
+		return false;
+	}
 	// get the base url
 	var pathname = window.location.pathname.substring(0,window.location.pathname.lastIndexOf('/')+1);
 	var baseurl = window.location.href.substring(0,location.href.lastIndexOf('/')+1).replace(pathname,"");

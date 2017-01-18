@@ -3,7 +3,7 @@
 
 <head>
 	<link rel="stylesheet" href="/cssloader/style.css">
-	<link rel="stylesheet" href="stylesheets/style3.css">
+	<link rel="stylesheet" href="stylesheets/style1.css">
 	<!--<link rel="stylesheet" href="stylesheets/style5.css">-->
 	<script src="jquery.js"></script>
 	<script src="cssloader.js"></script>
@@ -13,21 +13,34 @@
 	-->
 	<script>
 		docReady(function() {
+		    /*
 			// require some stylesheets
-//			cssloader.require([
-//				{href: "/fcloader/stylesheets/style1.css", media: "screen"},
-//				// Use for testing of loading a HUGE css file to make sure we load in order
-//				// {href: "stylesheets/style2.css", media: "screen"},
-//				{href: "stylesheets/style5.css", media: "screen"}
-//			], {devMode: true});
+			cssloader.require([
+				{href: "/fcloader/stylesheets/style1.css", media: "screen"},
+				// Use for testing of loading a HUGE css file to make sure we load in order
+				// {href: "stylesheets/style2.css", media: "screen"},
+				{href: "http://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.0/css/foundation-flex.css", media: "screen"},
+				{href: "stylesheets/style5.css", media: "screen"}
+			], {devMode: true});
 			cssloader.load({
-				stylesheets: "stylesheets/style5.css,stylesheets/style1.css"
+				stylesheets: "stylesheets/style6.css"
 			});
+			*/
+			cssloader.routes([
+				{
+				    when: "/one/two,/one/three",
+					load: "stylesheets/style3.css,stylesheets/style5.css"
+				}
+			]);
 		});
 		// For testing purposes jquery NOT needed
 		$(function () {
 			$(".whatSheets").on("click", function () {
-				cssloader.require('stylesheets/style4.css,stylesheets/style1.css');
+			    // use http://cdnjs.cloudflare.com/ajax/libs/foundation/6.3.0/css/foundation-flex.css to show it fails cross domain
+			    cssloader.require('stylesheets/style4.css,stylesheets/style1.css');
+//                cssloader.load({
+//                    stylesheets: "stylesheets/style3.css"
+//                });
 			});
 		});
 	</script>
