@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="/fcloader/style1.css">
+    <link rel="stylesheet" href="../style2.css">
+    <!--<link rel="stylesheet" href="stylesheets/style5.css">-->
+    <script src="../jquery.js"></script>
+    <script src="../loadCSS.js"></script>
+    <script src="../cssloader.js"></script>
+    <!-- tests
+        1. Try to load a sheet that was manually loaded in html already
+        2. Load a sheet that was already dynamically loaded
+    -->
+    <script>
+        $(function(){
+            // cssloader.require('style1.css,style2.css');
+            cssloader.require([
+                { href: "../style1.css", media: "screen" },
+                { href: "/fcloader/style2.css", media: "screen" },
+                { href: "style5.css", media: "screen" }
+            ]);
+            $(".whatSheets").on("click",function(){
+                $("link").each(function(){
+                    console.log($(this).attr("href")); // test
+                });
+            });
+        });
+    </script>
+    <!-- 1 green 2 blue 3 purple 4 red 5 brown -->
+</head>
+
+<body>
+<h1>Hello Plunker!</h1>
+Load Sheets as we want them
+<div class="whatSheets">What sheets</div>
+<script>document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')</script>
+</body>
+
+</html>
