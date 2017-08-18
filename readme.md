@@ -64,3 +64,6 @@ plugins: [
 new ExtractTextPlugin("[name].css")
 ]
 }
+
+
+(c) 2015 MIT License
