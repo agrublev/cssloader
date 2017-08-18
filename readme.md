@@ -65,5 +65,6 @@ new ExtractTextPlugin("[name].css")
 ]
 }
 
+// Contribution
 
 (c) 2015 MIT License
